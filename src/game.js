@@ -119,30 +119,34 @@ export class Game {
         this.startTimer();
     }
 
+    getLessonChars(lesson) {
+        const lessons = {
+            'home-row': 'asdfghjkl',
+            'top-row': 'qwertyuiop',
+            'bottom-row': 'zxcvbnm',
+            'numbers': '1234567890',
+            'all': 'abcdefghijklmnopqrstuvwxyz0123456789'
+        };
+        return (lessons[lesson] || lessons['all']).split('');
+    }
+
     generateCommand() {
-        const types = ['press', 'type', 'wait'];
-        // Weights can be adjusted. Initially simple.
-        const type = types[Math.floor(Math.random() * types.length)];
+        const lesson = this.settings.get('lesson') || 'home-row';
+        const chars = this.getLessonChars(lesson);
 
-        if (type === 'press') {
-            return { type: 'press', text: 'Press It!', target: this.settings.getKeyMapping('press') };
-        } else if (type === 'type') {
-            let chars = 'abcdefghijklmnopqrstuvwxyz0123456789'.split('');
-            const mappings = this.settings.getKeyMappings();
-            const usedKeys = Object.values(mappings).map(k => k.toLowerCase());
+        // Filter out mapped keys to avoid conflicts
+        const mappings = this.settings.getKeyMappings();
+        const usedKeys = Object.values(mappings).map(k => k.toLowerCase());
+        const availableChars = chars.filter(c => !usedKeys.includes(c));
 
-            chars = chars.filter(c => !usedKeys.includes(c));
-
-            if (chars.length === 0) {
-                 // Fallback if all chars are mapped (unlikely)
-                 chars = ['a'];
-            }
-
-            const char = chars[Math.floor(Math.random() * chars.length)];
-            return { type: 'type', text: `Type ${char.toUpperCase()}!`, target: char };
-        } else {
-            return { type: 'wait', text: 'Wait It!', target: null };
+        // Fallback if all chars are mapped (unlikely but possible with weird settings)
+        if (availableChars.length === 0) {
+             const fallback = chars.length > 0 ? chars[0] : 'a';
+             return { type: 'type', text: `Type ${fallback.toUpperCase()}!`, target: fallback };
         }
+
+        const char = availableChars[Math.floor(Math.random() * availableChars.length)];
+        return { type: 'type', text: `Type ${char.toUpperCase()}!`, target: char };
     }
 
     announceCommand(command) {
@@ -154,12 +158,7 @@ export class Game {
         clearTimeout(this.timer);
         this.timer = setTimeout(() => {
             if (this.state !== 'waitingForInput') return;
-
-            if (this.currentCommand.type === 'wait') {
-                this.handleSuccess();
-            } else {
-                this.handleFailure('Time out');
-            }
+            this.handleFailure('Time out');
         }, this.currentResponseTime);
     }
 
@@ -185,17 +184,7 @@ export class Game {
             return;
         }
 
-        if (this.currentCommand.type === 'wait') {
-            this.handleFailure('You pressed something');
-            return;
-        }
-
         let targetKey = this.currentCommand.target;
-        // Check if target is space
-        if (targetKey === ' ' && inputKey === ' ') {
-             this.handleSuccess();
-             return;
-        }
 
         if (targetKey.toLowerCase() === inputKey) {
             this.handleSuccess();

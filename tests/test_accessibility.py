@@ -7,7 +7,7 @@ def test_game():
         page.goto("http://localhost:8000")
 
         # Check Title
-        expect(page).to_have_title("Accessible Bop It")
+        expect(page).to_have_title("Type It Challenge")
 
         # Check ARIA Live Regions
         expect(page.locator("#command")).to_have_attribute("aria-live", "assertive")
@@ -27,11 +27,12 @@ def test_game():
         expect(page.locator("#settings-title")).to_be_visible()
 
         # Check Settings Controls
+        expect(page.get_by_label("Color Scheme")).to_be_visible()
+        expect(page.get_by_label("Lesson")).to_be_visible()
         expect(page.get_by_label("Master Volume")).to_be_visible()
         expect(page.get_by_label("Speech Rate")).to_be_visible()
         expect(page.get_by_label("Speech Pitch")).to_be_visible()
 
-        expect(page.get_by_label("Press It")).to_be_visible()
         expect(page.get_by_label("Repeat It")).to_be_visible()
         expect(page.get_by_label("Pause / Resume")).to_be_visible()
         expect(page.get_by_label("Start / Restart")).to_be_visible()

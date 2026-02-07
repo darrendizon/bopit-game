@@ -5,8 +5,9 @@ export class SettingsManager {
             rate: 1.0,
             pitch: 1.0,
             voiceName: '',
+            colorScheme: 'dark',
+            lesson: 'home-row',
             keyMappings: {
-                press: ' ',
                 repeat: 'r',
                 pause: 'Escape',
                 start: 'Enter'

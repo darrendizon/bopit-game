@@ -7,6 +7,36 @@
     --error-color: #f44336;
     --success-color: #4caf50;
     --font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    --game-container-bg: #2c2c2c;
+}
+
+body[data-theme="light"] {
+    --bg-color: #f0f0f0;
+    --text-color: #1a1a1a;
+    --primary-color: #00838f;
+    --secondary-color: #c51162;
+    --focus-color: #f57f17;
+    --game-container-bg: #ffffff;
+}
+
+body[data-theme="high-contrast"] {
+    --bg-color: #000000;
+    --text-color: #ffffff;
+    --primary-color: #ffff00;
+    --secondary-color: #00ffff;
+    --focus-color: #ffffff;
+    --error-color: #ff0000;
+    --success-color: #00ff00;
+    --game-container-bg: #000000;
+}
+
+/* High contrast specific borders */
+body[data-theme="high-contrast"] #game-container,
+body[data-theme="high-contrast"] dialog,
+body[data-theme="high-contrast"] button,
+body[data-theme="high-contrast"] input,
+body[data-theme="high-contrast"] select {
+    border: 2px solid var(--primary-color);
 }
 
 body {
@@ -34,7 +64,7 @@ h1 {
 }
 
 #game-container {
-    background-color: #2c2c2c;
+    background-color: var(--game-container-bg);
     padding: 2rem;
     border-radius: 10px;
     box-shadow: 0 4px 6px rgba(0,0,0,0.3);

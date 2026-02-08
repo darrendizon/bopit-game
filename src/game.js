@@ -6,6 +6,7 @@ export class Game {
         this.state = 'idle'; // idle, playing, waitingForInput, paused, gameOver
         this.score = 0;
         this.roundCount = 0;
+        this.sequenceIndex = 0;
 
         // Difficulty parameters
         this.baseResponseTime = 3000;
@@ -34,6 +35,7 @@ export class Game {
         this.state = 'playing';
         this.score = 0;
         this.roundCount = 0;
+        this.sequenceIndex = 0;
         this.currentResponseTime = this.baseResponseTime;
 
         this.updateScore();
@@ -106,6 +108,7 @@ export class Game {
 
         this.state = 'waitingForInput';
         this.roundCount++;
+        this.sequenceIndex = 0;
 
         // Speed up
         this.currentResponseTime = Math.max(
@@ -119,48 +122,71 @@ export class Game {
         this.startTimer();
     }
 
+    getLessonChars(lesson) {
+        const lessons = {
+            'home-row': 'asdfghjkl',
+            'top-row': 'qwertyuiop',
+            'bottom-row': 'zxcvbnm',
+            'numbers': '1234567890',
+            'all': 'abcdefghijklmnopqrstuvwxyz0123456789'
+        };
+        return (lessons[lesson] || lessons['all']).split('');
+    }
+
     generateCommand() {
-        const types = ['press', 'type', 'wait'];
-        // Weights can be adjusted. Initially simple.
-        const type = types[Math.floor(Math.random() * types.length)];
+        const lesson = this.settings.get('lesson') || 'home-row';
+        const chars = this.getLessonChars(lesson);
 
-        if (type === 'press') {
-            return { type: 'press', text: 'Press It!', target: this.settings.getKeyMapping('press') };
-        } else if (type === 'type') {
-            let chars = 'abcdefghijklmnopqrstuvwxyz0123456789'.split('');
-            const mappings = this.settings.getKeyMappings();
-            const usedKeys = Object.values(mappings).map(k => k.toLowerCase());
+        // Filter out mapped keys to avoid conflicts
+        const mappings = this.settings.getKeyMappings();
+        const usedKeys = Object.values(mappings).map(k => k.toLowerCase());
+        const availableChars = chars.filter(c => !usedKeys.includes(c));
 
-            chars = chars.filter(c => !usedKeys.includes(c));
-
-            if (chars.length === 0) {
-                 // Fallback if all chars are mapped (unlikely)
-                 chars = ['a'];
-            }
-
-            const char = chars[Math.floor(Math.random() * chars.length)];
-            return { type: 'type', text: `Type ${char.toUpperCase()}!`, target: char };
-        } else {
-            return { type: 'wait', text: 'Wait It!', target: null };
+        // Fallback if all chars are mapped (unlikely but possible with weird settings)
+        if (availableChars.length === 0) {
+             const fallback = chars.length > 0 ? chars[0] : 'a';
+             return { type: 'type', text: `Type ${fallback.toUpperCase()}!`, target: fallback };
         }
+
+        // Determine sequence length based on score
+        let sequenceLength = 1;
+        if (this.score >= 10) sequenceLength = 2;
+        if (this.score >= 20) sequenceLength = 3;
+
+        let sequence = [];
+        for (let i = 0; i < sequenceLength; i++) {
+            sequence.push(availableChars[Math.floor(Math.random() * availableChars.length)]);
+        }
+
+        const target = sequence.join('');
+        // Add commas for TTS clarity
+        const text = `Type ${sequence.join(', ').toUpperCase()}!`;
+
+        // Update visuals with sequence
+        // We delay this until announceCommand usually, but we set the target here.
+
+        return { type: 'type', text: text, target: target, rawSequence: sequence };
     }
 
     announceCommand(command) {
-        this.updateCommand(command.text);
+        // For visual display, show characters with spacing
+        const visualText = command.rawSequence ? command.rawSequence.join(' ').toUpperCase() : command.text;
+        this.updateCommand(visualText, 0);
         this.audio.speak(command.text, true);
     }
 
     startTimer() {
         clearTimeout(this.timer);
+
+        // Grant extra time for sequences
+        // Base time + 1s per extra character
+        const sequenceLength = this.currentCommand.target.length || 1;
+        const timeLimit = this.currentResponseTime + (sequenceLength - 1) * 1000;
+
         this.timer = setTimeout(() => {
             if (this.state !== 'waitingForInput') return;
-
-            if (this.currentCommand.type === 'wait') {
-                this.handleSuccess();
-            } else {
-                this.handleFailure('Time out');
-            }
-        }, this.currentResponseTime);
+            this.handleFailure('Time out');
+        }, timeLimit);
     }
 
     repeatCommand() {
@@ -169,7 +195,7 @@ export class Game {
         }
     }
 
-    handleInput(key) {
+    handleInput(key, code) {
         if (this.state !== 'waitingForInput') return;
 
         // Ignore modifier keys
@@ -177,6 +203,17 @@ export class Game {
 
         // Normalize key
         const inputKey = key.toLowerCase();
+        let targetSequence = this.currentCommand ? this.currentCommand.target : '';
+        let currentTargetChar = targetSequence[this.sequenceIndex];
+
+        // Debug logging (Required for Dev Builds)
+        console.log({
+            expectedSequence: targetSequence,
+            expectedChar: currentTargetChar,
+            typed: key,
+            code: code,
+            index: this.sequenceIndex
+        });
 
         // Check for repeat
         const repeatKey = this.settings.getKeyMapping('repeat').toLowerCase();
@@ -185,22 +222,19 @@ export class Game {
             return;
         }
 
-        if (this.currentCommand.type === 'wait') {
-            this.handleFailure('You pressed something');
-            return;
-        }
+        // Explicit validation logic
+        if (currentTargetChar.toLowerCase() === inputKey) {
+            this.sequenceIndex++;
+            this.audio.playClick();
 
-        let targetKey = this.currentCommand.target;
-        // Check if target is space
-        if (targetKey === ' ' && inputKey === ' ') {
-             this.handleSuccess();
-             return;
-        }
+            // Update Visuals
+            this.updateCommand(this.currentCommand.target, this.sequenceIndex);
 
-        if (targetKey.toLowerCase() === inputKey) {
-            this.handleSuccess();
+            if (this.sequenceIndex >= targetSequence.length) {
+                this.handleSuccess();
+            }
         } else {
-            this.handleFailure(`Wrong key. Expected ${targetKey}, got ${key}`);
+            this.handleFailure(`Wrong key. Expected ${currentTargetChar}, got ${key} (${code})`);
         }
     }
 
@@ -227,8 +261,31 @@ export class Game {
         this.gameOver(reason);
     }
 
-    updateCommand(text) {
-        this.liveCommand.textContent = text;
+    updateCommand(text, typedIndex = 0) {
+        // liveCommand is for screen readers, keep full text
+        if (typedIndex === 0) {
+             this.liveCommand.textContent = text;
+        }
+
+        // Logic to split by spaces if it's a sequence and we are playing
+        if (this.currentCommand && this.state === 'waitingForInput') {
+             const raw = this.currentCommand.rawSequence || [];
+             if (raw.length > 0) {
+                  const parts = raw.map(c => c.toUpperCase());
+                  let html = '';
+                  parts.forEach((char, i) => {
+                      if (i < typedIndex) {
+                          html += `<span class="highlight">${char}</span> `;
+                      } else {
+                          html += `<span>${char}</span> `;
+                      }
+                  });
+                  this.visualCommand.innerHTML = html.trim();
+                  return;
+             }
+        }
+
+        // Fallback for non-gameplay messages
         this.visualCommand.textContent = text;
     }
 

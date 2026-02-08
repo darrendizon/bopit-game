@@ -17,7 +17,19 @@ export class AudioController {
     }
 
     loadVoices() {
-        this.voices = this.synth.getVoices();
+        this.voices = this.synth.getVoices().sort((a, b) => {
+            const aName = a.name.toLowerCase();
+            const bName = b.name.toLowerCase();
+            const preferred = ['google', 'natural', 'premium', 'enhanced'];
+
+            const aScore = preferred.reduce((acc, term) => acc + (aName.includes(term) ? 1 : 0), 0);
+            const bScore = preferred.reduce((acc, term) => acc + (bName.includes(term) ? 1 : 0), 0);
+
+            if (aScore > bScore) return -1;
+            if (aScore < bScore) return 1;
+            return aName.localeCompare(bName);
+        });
+
         // Trigger event to update UI if needed, or just let settings pull it
         const event = new CustomEvent('voicesLoaded', { detail: this.voices });
         window.dispatchEvent(event);

@@ -3,13 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Accessible Bop It</title>
+    <title>Type It Challenge</title>
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
     <header>
-        <h1>Accessible Bop It</h1>
-        <p>A fast-paced, audio-first reaction game.</p>
+        <h1>Type It Challenge</h1>
+        <p>A fast-paced, audio-first typing game.</p>
     </header>
 
     <main id="game-container" aria-label="Game Area">
@@ -41,7 +41,14 @@
         <h2 id="settings-title">Settings</h2>
         <form id="settings-form" method="dialog">
             <fieldset>
-                <legend>Audio Preferences</legend>
+                <legend>Visual & Audio</legend>
+                <label for="color-scheme">Color Scheme</label>
+                <select id="color-scheme">
+                    <option value="dark">Dark (Default)</option>
+                    <option value="light">Light</option>
+                    <option value="high-contrast">High Contrast</option>
+                </select>
+
                 <label for="volume-slider">Master Volume</label>
                 <input type="range" id="volume-slider" min="0" max="1" step="0.1" value="1">
 
@@ -56,12 +63,19 @@
             </fieldset>
 
             <fieldset>
+                <legend>Game Settings</legend>
+                <label for="lesson-select">Lesson</label>
+                <select id="lesson-select">
+                    <option value="home-row">Home Row</option>
+                    <option value="top-row">Top Row</option>
+                    <option value="bottom-row">Bottom Row</option>
+                    <option value="numbers">Numbers</option>
+                    <option value="all">All Keys</option>
+                </select>
+            </fieldset>
+
+            <fieldset>
                 <legend>Key Mappings</legend>
-                <div class="key-map-row">
-                    <label for="key-press">Press It</label>
-                    <input type="text" id="key-press" value=" " readonly>
-                    <button type="button" class="change-key-btn" data-action="press">Change</button>
-                </div>
                 <div class="key-map-row">
                     <label for="key-repeat">Repeat It</label>
                     <input type="text" id="key-repeat" value="r" readonly>
@@ -92,11 +106,9 @@
         <div id="help-content">
             <p>Listen to the commands and react quickly!</p>
             <ul>
-                <li><strong>Press It:</strong> Press the Spacebar.</li>
                 <li><strong>Type It:</strong> Type the letter or number announced.</li>
-                <li><strong>Wait It:</strong> Do nothing until the next command.</li>
             </ul>
-            <p>The game gets faster as you progress. Use <strong>Escape</strong> to pause or quit.</p>
+            <p>The game gets faster as you progress. Use <strong>Escape</strong> to pause or quit. Use Settings to change the lesson or color scheme.</p>
         </div>
         <button id="close-help">Close</button>
     </dialog>

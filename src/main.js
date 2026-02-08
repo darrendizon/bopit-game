@@ -34,20 +34,27 @@ document.addEventListener('DOMContentLoaded', () => {
     const rateSlider = document.getElementById('speech-rate');
     const pitchSlider = document.getElementById('speech-pitch');
     const voiceSelect = document.getElementById('voice-select');
+    const colorSchemeSelect = document.getElementById('color-scheme');
+    const lessonSelect = document.getElementById('lesson-select');
 
     // Key Mapping Inputs
     const keyInputs = {
-        press: document.getElementById('key-press'),
         repeat: document.getElementById('key-repeat'),
         pause: document.getElementById('key-pause'),
         start: document.getElementById('key-start')
     };
+
+    // Apply initial color scheme
+    document.body.setAttribute('data-theme', settings.get('colorScheme') || 'dark');
 
     // Populate Settings UI
     function populateSettingsUI() {
         volumeSlider.value = settings.get('volume');
         rateSlider.value = settings.get('rate');
         if (pitchSlider) pitchSlider.value = settings.get('pitch') || 1.0;
+
+        if (colorSchemeSelect) colorSchemeSelect.value = settings.get('colorScheme') || 'dark';
+        if (lessonSelect) lessonSelect.value = settings.get('lesson') || 'home-row';
 
         for (const [action, input] of Object.entries(keyInputs)) {
             if (input) {
@@ -120,7 +127,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Pass to game if playing
         if (game.state === 'waitingForInput') {
-            game.handleInput(e.key);
+            game.handleInput(e.key, e.code);
         }
     });
 
@@ -152,6 +159,15 @@ document.addEventListener('DOMContentLoaded', () => {
         settings.set('rate', rateSlider.value);
         if (pitchSlider) settings.set('pitch', pitchSlider.value);
         settings.set('voiceName', voiceSelect.value);
+
+        if (colorSchemeSelect) {
+            settings.set('colorScheme', colorSchemeSelect.value);
+            document.body.setAttribute('data-theme', colorSchemeSelect.value);
+        }
+
+        if (lessonSelect) {
+            settings.set('lesson', lessonSelect.value);
+        }
 
         audio.setSettings({
             volume: volumeSlider.value,
